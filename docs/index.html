@@ -1,354 +1,555 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Content Refresh Prioritization from Search Performance Signals</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A public research artifact on ranking content observations for human review using FlyRank warehouse search-performance data.">
+  <title>Content Refresh Prioritization | FlyRank ML Research</title>
 
   <style>
-    :root {
-      --bg: #f7f8fa;
-      --card: #ffffff;
-      --text: #172033;
-      --muted: #5f6b7a;
-      --border: #e1e5ea;
-      --accent: #2563eb;
-      --soft: #eef4ff;
-      --max: 1000px;
+    :root{
+      --bg:#f6f8fb;
+      --surface:#ffffff;
+      --surface-2:#f1f5f9;
+      --text:#172033;
+      --muted:#5c6778;
+      --border:#dfe5ec;
+      --accent:#2563eb;
+      --accent-2:#dbeafe;
+      --good:#0f766e;
+      --good-bg:#ecfdf5;
+      --warn:#92400e;
+      --warn-bg:#fff7ed;
+      --max:1080px;
+      --shadow:0 10px 30px rgba(16,24,40,.06);
+      --radius:18px;
     }
 
-    * {
-      box-sizing: border-box;
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      line-height:1.72;
     }
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, Arial, sans-serif;
-      line-height: 1.7;
+    a{color:var(--accent)}
+    img{max-width:100%}
+
+    .wrap{
+      width:min(calc(100% - 34px),var(--max));
+      margin:0 auto;
     }
 
-    .container {
-      width: min(100% - 32px, var(--max));
-      margin: 0 auto;
+    header{
+      background:
+        radial-gradient(circle at 85% 15%, rgba(37,99,235,.12), transparent 28%),
+        linear-gradient(180deg,#ffffff 0%,#f7faff 100%);
+      border-bottom:1px solid var(--border);
+      padding:70px 0 44px;
     }
 
-    header {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 70px 0 55px;
+    .eyebrow{
+      display:inline-block;
+      font-size:.82rem;
+      font-weight:750;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--accent);
+      margin-bottom:16px;
     }
 
-    h1 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      line-height: 1.1;
-      margin: 0 0 18px;
-      max-width: 850px;
+    h1{
+      font-size:clamp(2.1rem,5vw,4.25rem);
+      line-height:1.06;
+      letter-spacing:-.035em;
+      max-width:900px;
+      margin:0 0 20px;
     }
 
-    .subtitle {
-      color: var(--muted);
-      font-size: 1.1rem;
-      max-width: 780px;
+    .lede{
+      font-size:1.13rem;
+      color:var(--muted);
+      max-width:820px;
+      margin:0 0 22px;
     }
 
-    .meta {
-      margin-top: 24px;
-      color: var(--muted);
-      font-size: 0.95rem;
+    .meta{
+      color:var(--muted);
+      font-size:.94rem;
     }
 
-    main {
-      padding: 45px 0 80px;
+    nav{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:rgba(255,255,255,.94);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
     }
 
-    section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 24px;
+    .nav-inner{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      overflow:auto;
+      padding:10px 0;
+      white-space:nowrap;
     }
 
-    h2 {
-      margin-top: 0;
-      font-size: 1.65rem;
+    nav a{
+      text-decoration:none;
+      color:var(--muted);
+      padding:7px 10px;
+      border-radius:9px;
+      font-size:.9rem;
     }
 
-    h3 {
-      margin-top: 28px;
-      font-size: 1.15rem;
+    nav a:hover{background:var(--surface-2);color:var(--text)}
+
+    main{padding:34px 0 72px}
+
+    section{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:32px;
+      margin-bottom:24px;
+      scroll-margin-top:70px;
     }
 
-    p {
-      margin: 12px 0;
+    .hero-card{
+      border-left:5px solid var(--accent);
+      background:linear-gradient(180deg,#ffffff 0%,#f9fbff 100%);
     }
 
-    .abstract {
-      background: var(--soft);
-      border-left: 5px solid var(--accent);
+    h2{
+      margin:0 0 14px;
+      font-size:1.72rem;
+      line-height:1.2;
+      letter-spacing:-.02em;
     }
 
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin: 22px 0;
+    h3{
+      margin:28px 0 9px;
+      font-size:1.13rem;
+      line-height:1.3;
     }
 
-    .metric {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
-      background: #fff;
+    p{margin:12px 0}
+
+    .small{font-size:.93rem;color:var(--muted)}
+
+    .grid{
+      display:grid;
+      gap:15px;
     }
 
-    .metric strong {
-      display: block;
-      font-size: 1.55rem;
-      margin-top: 4px;
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    .grid-4{grid-template-columns:repeat(4,1fr)}
+    .grid-2{grid-template-columns:repeat(2,1fr)}
+
+    .card{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:18px;
+      background:var(--surface);
     }
 
-    .metric span {
-      color: var(--muted);
-      font-size: 0.9rem;
+    .card h3{margin-top:0}
+
+    .metric strong{
+      display:block;
+      font-size:1.9rem;
+      line-height:1.1;
+      margin:7px 0 3px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 18px 0;
+    .metric span{
+      color:var(--muted);
+      font-size:.86rem;
     }
 
-    th,
-    td {
-      border-bottom: 1px solid var(--border);
-      padding: 12px 10px;
-      text-align: left;
+    .callout{
+      border-radius:14px;
+      padding:18px 20px;
+      margin:18px 0;
+      background:var(--accent-2);
+      border:1px solid #bfdbfe;
     }
 
-    th {
-      background: #f4f6f8;
+    .callout.good{
+      background:var(--good-bg);
+      border-color:#a7f3d0;
     }
 
-    img {
-      display: block;
-      width: 100%;
-      max-width: 780px;
-      margin: 24px auto 10px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+    .callout.warn{
+      background:var(--warn-bg);
+      border-color:#fed7aa;
     }
 
-    .caption {
-      color: var(--muted);
-      font-size: 0.92rem;
-      text-align: center;
-      margin-bottom: 22px;
+    .flow{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      margin-top:18px;
     }
 
-    code {
-      background: #f1f3f5;
-      padding: 2px 5px;
-      border-radius: 5px;
+    .flow .step{
+      position:relative;
+      padding:17px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fff;
     }
 
-    a {
-      color: var(--accent);
+    .step-num{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      background:var(--accent);
+      color:#fff;
+      font-weight:700;
+      font-size:.84rem;
+      margin-bottom:9px;
     }
 
-    .note {
-      border-left: 4px solid #9ca3af;
-      padding-left: 15px;
-      color: var(--muted);
+    .flow strong{display:block;line-height:1.3}
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin:18px 0;
     }
 
-    footer {
-      color: var(--muted);
-      padding: 20px 0 60px;
+    th,td{
+      text-align:left;
+      vertical-align:top;
+      border-bottom:1px solid var(--border);
+      padding:12px 10px;
     }
 
-    @media (max-width: 700px) {
-      section {
-        padding: 22px;
-      }
+    th{background:var(--surface-2)}
 
-      .metric-grid {
-        grid-template-columns: 1fr;
-      }
+    .number{
+      font-variant-numeric:tabular-nums;
+      font-weight:700;
+    }
 
-      table {
-        display: block;
-        overflow-x: auto;
-      }
+    .chart{
+      margin:22px 0 8px;
+      padding:12px;
+      background:#fbfcfe;
+      border:1px solid var(--border);
+      border-radius:14px;
+    }
+
+    .chart img{
+      display:block;
+      width:100%;
+      max-width:820px;
+      margin:0 auto;
+    }
+
+    .caption{
+      text-align:center;
+      color:var(--muted);
+      font-size:.92rem;
+      margin:9px 0 4px;
+    }
+
+    ul,ol{padding-left:22px}
+    li{margin:7px 0}
+
+    code{
+      background:#eef2f7;
+      border:1px solid #e5e9ef;
+      border-radius:6px;
+      padding:1px 5px;
+      font-size:.92em;
+    }
+
+    .kicker{
+      font-weight:750;
+      color:var(--text);
+    }
+
+    .toc-list{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:9px 22px;
+      margin:0;
+      padding-left:20px;
+    }
+
+    .note{
+      color:var(--muted);
+      border-left:4px solid #94a3b8;
+      padding-left:14px;
+    }
+
+    footer{
+      color:var(--muted);
+      padding:8px 0 58px;
+      text-align:center;
+      font-size:.9rem;
+    }
+
+    .top{
+      text-align:right;
+      margin-top:10px;
+      font-size:.88rem;
+    }
+
+    @media (max-width:850px){
+      .grid-4,.flow{grid-template-columns:repeat(2,1fr)}
+      .grid-3{grid-template-columns:1fr}
+    }
+
+    @media (max-width:650px){
+      section{padding:23px}
+      header{padding:50px 0 34px}
+      .grid-2,.grid-4,.flow,.toc-list{grid-template-columns:1fr}
+      nav a{font-size:.82rem}
+      th,td{padding:10px 8px}
     }
   </style>
 </head>
 
-<body>
+<body id="top">
 
 <header>
-  <div class="container">
+  <div class="wrap">
+    <div class="eyebrow">FlyRank ML Internship · Public Research Artifact</div>
     <h1>Content Refresh Prioritization from Search Performance Signals</h1>
-
-    <p class="subtitle">
-      A transparent machine-learning ranking study for prioritizing content
-      observations for human review.
+    <p class="lede">
+      Can a simple machine-learning model help an editor decide which content
+      observations deserve review first?
     </p>
-
     <p class="meta">
-      FlyRank ML Internship · Warehouse release v20260703 · Content Refresh lane
+      Warehouse release v20260703 · Content Refresh lane · March 2026 decision window · April 2026 outcome window
     </p>
   </div>
 </header>
 
-<main class="container">
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#at-a-glance">At a glance</a>
+    <a href="#problem">Problem</a>
+    <a href="#data">Data</a>
+    <a href="#method">Method</a>
+    <a href="#results">Results</a>
+    <a href="#limits">Limits</a>
+    <a href="#recommendations">Recommendations</a>
+    <a href="#repro">Reproducibility</a>
+    <a href="#credit">Credit</a>
+  </div>
+</nav>
 
-  <!-- ABSTRACT -->
-  <section class="abstract">
+<main class="wrap">
+
+  <section class="hero-card" id="at-a-glance">
     <h2>Abstract</h2>
-
     <p>
-      This paper asks whether a simple machine-learning model can prioritize
-      content observations for human review based on their measured risk of
-      future search-performance decline. Using the FlyRank internship warehouse
-      release v20260703, 96,268 eligible client-content observations were built
-      from March 2026 features and an April 2026 future-decline outcome.
-      Logistic Regression ranked observations by predicted probability and was
-      compared with a transparent Week-4 rule under an 80/20 client-grouped
-      holdout. On 22,411 held-out observations across 8 clients, the model
-      measured Precision@20 of 0.85 and Precision@50 of 0.82 versus 0.50 and
-      0.52 for the baseline, with a test positive rate of 0.6437. These results
-      provide directional decision support for human review, not a causal claim
-      that refreshing a page will improve performance.
+      This study asks whether a simple machine-learning model can rank content
+      observations for human review using signals available before a future
+      search-performance outcome. It uses the FlyRank internship warehouse
+      release v20260703, with March 2026 search-performance features and an
+      April 2026 outcome defined as a drop of at least 20% in average daily GSC
+      impressions. Logistic Regression turns five March-only features into a
+      ranking score and is compared with a transparent Week-4 baseline using
+      an 80/20 client-grouped holdout. On 22,411 held-out observations across
+      eight clients, the model measured Precision@20 of 0.85 and Precision@50
+      of 0.82, compared with 0.50 and 0.52 for the baseline. The result is
+      evidence for prioritization and human review in this experiment, not
+      evidence that refreshing a page causes better search performance.
     </p>
+
+    <div class="grid grid-4">
+      <div class="card metric">
+        <span>Eligible observations</span>
+        <strong>96,268</strong>
+        <span>40 clients</span>
+      </div>
+      <div class="card metric">
+        <span>Held-out test set</span>
+        <strong>22,411</strong>
+        <span>8 clients · 0 client overlap</span>
+      </div>
+      <div class="card metric">
+        <span>Model Precision@20</span>
+        <strong>0.85</strong>
+        <span>17 of top 20 met the defined outcome</span>
+      </div>
+      <div class="card metric">
+        <span>Model Precision@50</span>
+        <strong>0.82</strong>
+        <span>41 of top 50 met the defined outcome</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="kicker">How to read this paper:</span>
+      the model does not tell an editor what to change. It creates an ordered
+      review queue. Humans still inspect the page, context, search intent and
+      business situation before acting.
+    </div>
   </section>
 
-  <!-- INTRODUCTION -->
-  <section>
+  <section id="problem">
     <h2>1. Introduction / Problem</h2>
 
     <p>
-      Content teams often have more pages to review than they can inspect
-      immediately. The practical question in this project is therefore not
-      simply whether a page is performing well or poorly, but
-      <strong>which observations should be reviewed first</strong>.
+      Imagine an editor has thousands of pages and only enough time to inspect
+      a small number today. The useful question is not simply
+      <em>“Which pages are bad?”</em> but
+      <strong>“Which observations should be reviewed first?”</strong>
     </p>
 
     <p>
-      This work frames that problem as ranking. A learned model produces a
-      probability score that can be used to order observations for human
-      review, while a transparent rule-based baseline provides a simple
-      comparison point.
+      This project treats that as a ranking problem. A transparent rule gives
+      us a human-readable baseline; a learned model gives us another way to
+      order the same kind of observations.
     </p>
 
-    <p>
-      The output is intended as decision support: a high-ranked observation is
-      a reason to inspect the page, not proof that a refresh is required.
-    </p>
+    <div class="flow">
+      <div class="step">
+        <span class="step-num">1</span>
+        <strong>Observe March</strong>
+        Search-performance signals available at the decision moment.
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <strong>Define April outcome</strong>
+        Mark observations whose average daily impressions fell by at least 20%.
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <strong>Rank</strong>
+        Logistic Regression assigns a score used only to order the review queue.
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <strong>Review</strong>
+        A human checks context before deciding whether any action is appropriate.
+      </div>
+    </div>
   </section>
 
-  <!-- DATA -->
-  <section>
+  <section id="data">
     <h2>2. Data</h2>
 
     <p>
       The study uses the FlyRank internship warehouse release
       <strong>v20260703</strong>, hosted in the gated
-      <code>FlyRank/internship-warehouse</code> dataset.
+      <code>FlyRank/internship-warehouse</code> dataset. The main table is
+      <code>fact_content_daily_performance</code>, with grain
+      <strong>report date × client × content</strong>. The release contains
+      approximately 78.8 million daily-performance rows spanning
+      2025-01-27 through 2026-06-30.
     </p>
 
-    <p>
-      The main table is
-      <code>fact_content_daily_performance</code>, whose daily grain is
-      report date × client × content. The release contains approximately
-      78.8 million daily-performance rows covering 2025-01-27 through
-      2026-06-30.
-    </p>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Feature window · March 2026</h3>
+        <p class="small">
+          Only information available in March is used as a predictive input.
+        </p>
+        <ul>
+          <li><code>march_impressions</code> — search exposure</li>
+          <li><code>march_clicks</code> — observed clicks</li>
+          <li><code>march_ctr</code> — click rate</li>
+          <li><code>march_avg_position</code> — search position context</li>
+          <li><code>march_days_observed</code> — depth of available evidence</li>
+        </ul>
+      </div>
 
-    <h3>Analysis windows</h3>
-
-    <ul>
-      <li>March 2026 — feature / decision window.</li>
-      <li>April 2026 — future outcome window.</li>
-    </ul>
-
-    <h3>Model features</h3>
-
-    <ul>
-      <li><code>march_impressions</code></li>
-      <li><code>march_clicks</code></li>
-      <li><code>march_ctr</code></li>
-      <li><code>march_avg_position</code></li>
-      <li><code>march_days_observed</code></li>
-    </ul>
+      <div class="card">
+        <h3>Outcome window · April 2026</h3>
+        <p class="small">
+          April is used to define the outcome only. It is not allowed into the
+          March feature set.
+        </p>
+        <p>
+          Label = 1 when average daily GSC impressions in April are at least
+          20% lower than average daily GSC impressions in March.
+        </p>
+      </div>
+    </div>
 
     <h3>Eligibility and exclusions</h3>
-
     <ul>
       <li>At least 100 March GSC impressions.</li>
       <li>At least 14 GSC-observed days in March.</li>
       <li>At least 14 GSC-observed days in April.</li>
       <li>Rows without available GSC data were excluded.</li>
       <li><code>gsc_avg_position = 0</code> was treated as unavailable.</li>
-      <li>Future April outcome fields were not used as model features.</li>
-      <li>Client and content identifiers were used for grouping, not as predictive features.</li>
+      <li>Future April outcome fields were excluded from model features.</li>
+      <li>Client and content identifiers were used for grouping, never as predictive features.</li>
     </ul>
 
     <p class="note">
-      Client and content identifiers remain pseudonymized. No client names,
-      private URLs, or private search queries are included.
+      The final modeling dataset contains 96,268 eligible client-content
+      observations across 40 clients. The client/content identifiers remain
+      pseudonymized; no client names, private URLs or private search queries
+      appear in the paper.
     </p>
   </section>
 
-  <!-- METHODOLOGY -->
-  <section>
+  <section id="method">
     <h2>3. Methodology</h2>
 
-    <h3>Model</h3>
-
+    <h3>Model choice</h3>
     <p>
-      Logistic Regression was selected as the first learned model because the
-      task is ranking-oriented and the predicted probability provides a simple,
-      interpretable ranking score.
+      Logistic Regression was chosen as the first learned model because the
+      question is ranking-oriented and the model produces a probability-like
+      score that is easy to inspect and use for ranking. No claim is made that
+      a more complex model could not behave differently.
     </p>
 
-    <h3>Future outcome definition</h3>
-
+    <h3>What the model sees</h3>
     <p>
-      An eligible observation receives a positive future-decline label when
-      average daily GSC impressions in April are at least 20% lower than average
-      daily GSC impressions in March.
-    </p>
-
-    <p>
-      This is a declared experimental outcome definition, not a universal
-      definition of content decay.
+      All five model inputs come from March 2026. April fields exist only on
+      the outcome side. This separation is the core protection against using
+      future information as a feature.
     </p>
 
     <h3>Baseline</h3>
-
     <p>
       The Week-4 baseline prioritizes observations with at least 100 March
-      impressions and CTR below the average CTR measured for the March
-      average-position bucket. Its transparent reason code is
-      <code>HIGH_EXPOSURE_LOW_CTR</code>.
+      impressions and CTR below the average CTR for their March average-position
+      bucket. In the held-out evaluation, that position-specific reference was
+      calculated from training rows only.
     </p>
 
-    <h3>Validation</h3>
-
+    <h3>Validation design</h3>
     <p>
       The main evaluation uses an 80/20 client-grouped holdout with random seed
-      42. Training contains 32 clients and 73,857 rows; testing contains
-      8 clients and 22,411 rows. Client overlap is zero.
+      42. Training contains 32 clients and 73,857 rows; testing contains 8
+      clients and 22,411 rows. There is <strong>zero client overlap</strong>.
     </p>
 
+    <h3>Why Precision@20 and @50?</h3>
     <p>
-      Precision@20 and Precision@50 are used because the practical question is
-      which observations should be reviewed first.
+      If the real workflow is “review the first few recommendations,” overall
+      accuracy is less informative than asking how many of the top-ranked
+      observations actually meet the chosen outcome definition.
     </p>
+
+    <div class="callout good">
+      <strong>Plain-English metric:</strong>
+      Precision@20 = the share of the first 20 ranked observations that meet
+      the defined future-decline label. Precision@50 is the same idea for the
+      first 50.
+    </div>
 
     <h3>Validation audit</h3>
 
@@ -358,50 +559,59 @@
           <th>Validation design</th>
           <th>Precision@20</th>
           <th>Precision@50</th>
+          <th>Why it matters</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Random row split</td>
-          <td>0.90</td>
-          <td>0.84</td>
+          <td class="number">0.90</td>
+          <td class="number">0.84</td>
+          <td>Rows from the same client can appear in both train and test.</td>
         </tr>
         <tr>
           <td>Client-grouped split</td>
-          <td>0.85</td>
-          <td>0.82</td>
+          <td class="number">0.85</td>
+          <td class="number">0.82</td>
+          <td>Whole clients are held out; this is the main estimate used here.</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>Leakage checks</h3>
-
+    <h3>Leakage audit</h3>
     <p>
-      The final feature set contains only March 2026 variables. No April outcome
-      fields or future-decline label fields are used as model features. The
-      feature-source audit confirmed that all five model inputs come from the
-      March decision window.
+      The final feature set contains only March variables. The audit found no
+      future- or label-derived feature names, and no April outcome fields were
+      used as model inputs. The feature-source audit confirmed March 2026 as the
+      source window for all five inputs.
     </p>
   </section>
 
-  <!-- RESULTS -->
-  <section>
+  <section id="results">
     <h2>4. Results</h2>
 
-    <div class="metric-grid">
-      <div class="metric">
-        <span>Logistic Regression · Precision@20</span>
+    <p>
+      The main comparison is on the same held-out-client test set, using the
+      same ranking metrics.
+    </p>
+
+    <div class="grid grid-3">
+      <div class="card metric">
+        <span>Week-4 baseline · Precision@20</span>
+        <strong>0.50</strong>
+        <span>10 of the top 20 met the label</span>
+      </div>
+
+      <div class="card metric">
+        <span>Model · Precision@20</span>
         <strong>0.85</strong>
+        <span>17 of the top 20 met the label</span>
       </div>
 
-      <div class="metric">
-        <span>Logistic Regression · Precision@50</span>
+      <div class="card metric">
+        <span>Model · Precision@50</span>
         <strong>0.82</strong>
-      </div>
-
-      <div class="metric">
-        <span>Held-out test positive rate</span>
-        <strong>0.6437</strong>
+        <span>41 of the top 50 met the label</span>
       </div>
     </div>
 
@@ -413,191 +623,199 @@
           <th>Precision@50</th>
         </tr>
       </thead>
-
       <tbody>
         <tr>
           <td>Week-4 baseline</td>
-          <td>0.50</td>
-          <td>0.52</td>
+          <td class="number">0.50</td>
+          <td class="number">0.52</td>
         </tr>
-
         <tr>
           <td>Logistic Regression</td>
-          <td>0.85</td>
-          <td>0.82</td>
+          <td class="number">0.85</td>
+          <td class="number">0.82</td>
         </tr>
       </tbody>
     </table>
 
-    <img
-      src="figures/model_vs_baseline_precision.png"
-      alt="Bar chart comparing Week-4 baseline and Logistic Regression precision at 20 and 50"
-    >
+    <div class="callout">
+      <strong>Read the result against the base rate:</strong>
+      the held-out test positive-label rate was <strong>0.6437</strong>.
+      This matters because precision numbers are easier to interpret when the
+      underlying prevalence is visible. In this experiment, the model's
+      top-ranked precision was above that prevalence; the baseline's reported
+      Precision@20 and @50 were below it.
+    </div>
 
-    <p class="caption">
-      Model vs Week-4 baseline on the client-grouped held-out test split.
-    </p>
+    <div class="chart">
+      <img
+        src="figures/model_vs_baseline_precision.png"
+        alt="Bar chart comparing Week-4 baseline and Logistic Regression precision at 20 and 50"
+      >
+      <p class="caption">
+        Model vs Week-4 baseline on the client-grouped held-out test split.
+      </p>
+    </div>
 
     <p>
       On this held-out-client split, Logistic Regression measured higher
-      precision than the Week-4 baseline at both evaluation cutoffs. The result
-      is specific to this dataset, feature window, future-decline definition,
-      and client-grouped test split.
+      precision than the Week-4 baseline at both cutoffs. The random row split
+      produced 0.90 and 0.84, while the stricter client-grouped split produced
+      0.85 and 0.82, which is why the grouped result is the main estimate.
     </p>
   </section>
 
-  <!-- LIMITATIONS -->
-  <section>
+  <section id="limits">
     <h2>5. Limitations & Honest Framing</h2>
 
     <ul>
       <li>
-        Results come from one March 2026 feature window and one April 2026
-        outcome definition.
+        The study uses one March feature window and one April outcome window.
+        Results may differ under other time periods.
       </li>
-
       <li>
-        The future-decline label is an experimental definition and should not be
-        treated as a universal definition of content decay.
+        The 20% impression-drop label is an experimental definition, not a
+        universal definition of “content decay.”
       </li>
-
       <li>
-        The main test contains eight held-out clients. The grouped split tests
-        those held-out clients rather than every possible future client.
+        The main test contains eight held-out clients. That is stronger than a
+        row-random split for this question, but it is still a small held-out
+        client sample.
       </li>
-
       <li>
-        Training and test positive-label rates differ: 0.4664 versus 0.6437.
+        The training and test positive-label rates differ: 0.4664 versus 0.6437.
         This indicates a noticeable difference in outcome prevalence between
-        the two groups.
+        these groups.
       </li>
-
       <li>
-        The model uses only five search-performance features and does not capture
-        every factor affecting content performance, including search intent,
-        SERP conditions, editorial context, and business context.
+        The five features do not capture every relevant factor, including
+        search intent, SERP features, editorial context, business priorities
+        and recent changes outside the warehouse snapshot.
       </li>
-
       <li>
-        The analysis does not establish that refreshing a page causes better
-        search performance.
+        The analysis measures ranking performance. It does not establish that
+        refreshing a page causes better search performance.
       </li>
-
       <li>
-        Recommendations are decision-support suggestions for human review, not
-        automatic content actions.
+        A high model score is a reason to review, not proof that a particular
+        edit is needed.
       </li>
     </ul>
   </section>
 
-  <!-- RECOMMENDATIONS -->
-  <section>
+  <section id="recommendations">
     <h2>6. Ranked Recommendations</h2>
 
     <h3>1. Review high-risk observations with meaningful exposure</h3>
-
     <p>
-      Start with observations that have a higher predicted probability of the
-      future-decline outcome and meaningful March search exposure. These combine
-      a measured model signal with observed search activity that can make human
-      review useful.
+      Start with observations that have a higher model score and meaningful
+      March search exposure. The purpose is to use limited reviewer time on
+      observations that the model ranks more highly and that have enough current
+      search activity to make inspection potentially useful.
     </p>
 
-    <h3>2. Inspect high-risk observations with weak CTR context</h3>
-
+    <h3>2. If CTR is weak, inspect the search context before editing</h3>
     <p>
-      Where a high-risk observation also has weak CTR relative to its observed
-      position, review the title, snippet, search intent, and page/result
-      alignment.
+      Review the title, snippet, query intent, page/result alignment and SERP
+      context. The model does not tell the reviewer which one of these is the
+      problem.
     </p>
 
     <h3>3. Treat low-evidence high-risk observations cautiously</h3>
-
     <p>
-      Observations with limited current evidence should be reviewed more
-      cautiously because sparse or changing data can make the ranking less
-      stable.
+      Sparse or changing data can make a score less stable. These observations
+      are candidates for additional evidence or monitoring rather than automatic
+      changes.
     </p>
 
-    <h3>Human review is required</h3>
+    <h3>Human-review checklist</h3>
+    <ol>
+      <li>Check current page and search context.</li>
+      <li>Check search intent and CTR context.</li>
+      <li>Check whether a recent content or site change explains the signal.</li>
+      <li>Check business, brand, legal and editorial context.</li>
+      <li>Confirm that the suggested action makes sense before changing anything.</li>
+    </ol>
 
-    <p>
-      Reviewers should check current search context, search intent, recent page
-      changes, business and editorial context, and whether the suggested action
-      makes sense before making a change.
-    </p>
-
-    <h3>What should not be automated</h3>
-
+    <h3>What should never be automated here</h3>
     <ul>
-      <li>Automatic content publishing or rewriting.</li>
+      <li>Automatic publishing or rewriting of page content.</li>
       <li>Automatic title or metadata changes.</li>
-      <li>Automatic deletion, redirects, or de-indexing.</li>
-      <li>Automatic legal, brand, or sensitive editorial decisions.</li>
-      <li>Treating a high model score as proof that a page needs a particular edit.</li>
+      <li>Automatic deletion, redirects or de-indexing.</li>
+      <li>Automatic legal, brand or sensitive editorial decisions.</li>
+      <li>Treating a high score as proof that a page needs a specific edit.</li>
     </ul>
+
+    <h3>Cost / value thinking</h3>
+    <p>
+      The practical constraint is reviewer time, not a claimed monetary ROI.
+      Higher-risk, higher-exposure observations can be inspected earlier, but
+      the actual value of a change depends on the page, business context and
+      the result of human review.
+    </p>
+
+    <h3>Monitoring and retraining</h3>
+    <p>
+      Track Precision@20 and Precision@50 on a recent reviewed sample, data
+      availability, feature distributions and the rate at which reviewers
+      reject high-priority recommendations. Consider a fresh model audit when
+      recent precision falls materially, feature distributions shift, data
+      coverage changes enough to alter the queue, reviewers repeatedly reject
+      high-priority items for the same reason, or the underlying decision/outcome
+      definition changes.
+    </p>
+
+    <div class="callout warn">
+      <strong>Important:</strong>
+      retraining should only follow a fresh leakage audit, an honest validation
+      split and a new comparison with the frozen baseline.
+    </div>
   </section>
 
-  <!-- REPRODUCIBILITY -->
-  <section>
+  <section id="repro">
     <h2>7. Reproducibility</h2>
 
     <p>
-      The analysis is organized as a sequence of notebooks in the public
-      repository. The main modeling workflow uses fixed random seed 42,
-      March 2026 features, an April 2026 future outcome window, and an 80/20
-      client-grouped validation split.
+      The workflow is recorded in the public repository. The main experiment
+      uses random seed 42, March 2026 features, an April 2026 future outcome
+      window and an 80/20 client-grouped validation split.
     </p>
 
-    <h3>Key notebooks</h3>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Core notebooks</h3>
+        <ul>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w03_data_contract.ipynb">ML-04 · Data Contract</a></li>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w04_baseline_score.ipynb">ML-07 · Baseline Action Score</a></li>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w05_model.ipynb">ML-08 · Capstone Model</a></li>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w06_validation_audit.ipynb">ML-09 · Validation Audit</a></li>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w07_action_playbook.ipynb">ML-10 · Action Playbook</a></li>
+          <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/capstone.ipynb">ML-11 · Capstone Notebook</a></li>
+        </ul>
+      </div>
 
-    <ul>
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w03_data_contract.ipynb">
-          ML-04 — Data Contract
-        </a>
-      </li>
+      <div class="card">
+        <h3>Useful artifacts</h3>
+        <p>
+          The repository also contains the reusable model-vs-baseline figure
+          used on this page. Generated queue data remains a working artifact
+          and is reproduced by the notebook workflow.
+        </p>
+        <p>
+          <a href="https://github.com/GODRATAN/FlyRank_ML-Intern">
+            View the full GitHub repository →
+          </a>
+        </p>
+      </div>
+    </div>
 
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w04_baseline_score.ipynb">
-          ML-07 — Baseline Action Score
-        </a>
-      </li>
-
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w05_model.ipynb">
-          ML-08 — Capstone Model
-        </a>
-      </li>
-
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w06_validation_audit.ipynb">
-          ML-09 — Validation Audit
-        </a>
-      </li>
-
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w07_action_playbook.ipynb">
-          ML-10 — Action Playbook
-        </a>
-      </li>
-
-      <li>
-        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/capstone.ipynb">
-          ML-11 — Capstone Notebook
-        </a>
-      </li>
-    </ul>
-
-    <p>
-      <a href="https://github.com/GODRATAN/FlyRank_ML-Intern">
-        View the full GitHub repository
-      </a>
+    <p class="note">
+      Reproducibility here means a stranger can inspect the workflow, inputs,
+      split design, validation numbers and public artifacts without accessing
+      private client information.
     </p>
   </section>
 
-  <!-- CREDIT -->
-  <section>
+  <section id="credit">
     <h2>8. Acknowledgments & Data Credit</h2>
 
     <p>
@@ -610,17 +828,24 @@
     <p>
       This project was completed as part of the FlyRank ML Internship track.
     </p>
+
+    <p class="small">
+      The data and analysis are presented here in pseudonymized, public-safe form.
+    </p>
+
+    <div class="top"><a href="#top">Back to top ↑</a></div>
   </section>
 
 </main>
 
 <footer>
-  <div class="container">
-    <p>
-      Public research artifact · Content Refresh Prioritization · FlyRank ML Internship
-    </p>
-  </div>
+  Public research artifact · Content Refresh Prioritization · FlyRank ML Internship
 </footer>
 
 </body>
 </html>
+'''
+
+path = Path("/mnt/data/index_improved.html")
+path.write_text(html, encoding="utf-8")
+print(path)
