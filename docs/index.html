@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Content Refresh Prioritization from Search Performance Signals</title>
+
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #5f6b7a;
+      --border: #e1e5ea;
+      --accent: #2563eb;
+      --soft: #eef4ff;
+      --max: 1000px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Arial, sans-serif;
+      line-height: 1.7;
+    }
+
+    .container {
+      width: min(100% - 32px, var(--max));
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 70px 0 55px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1.1;
+      margin: 0 0 18px;
+      max-width: 850px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 780px;
+    }
+
+    .meta {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    main {
+      padding: 45px 0 80px;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.65rem;
+    }
+
+    h3 {
+      margin-top: 28px;
+      font-size: 1.15rem;
+    }
+
+    p {
+      margin: 12px 0;
+    }
+
+    .abstract {
+      background: var(--soft);
+      border-left: 5px solid var(--accent);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 22px 0;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      background: #fff;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.55rem;
+      margin-top: 4px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 12px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f4f6f8;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      max-width: 780px;
+      margin: 24px auto 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .caption {
+      color: var(--muted);
+      font-size: 0.92rem;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    code {
+      background: #f1f3f5;
+      padding: 2px 5px;
+      border-radius: 5px;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .note {
+      border-left: 4px solid #9ca3af;
+      padding-left: 15px;
+      color: var(--muted);
+    }
+
+    footer {
+      color: var(--muted);
+      padding: 20px 0 60px;
+    }
+
+    @media (max-width: 700px) {
+      section {
+        padding: 22px;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="container">
+    <h1>Content Refresh Prioritization from Search Performance Signals</h1>
+
+    <p class="subtitle">
+      A transparent machine-learning ranking study for prioritizing content
+      observations for human review.
+    </p>
+
+    <p class="meta">
+      FlyRank ML Internship · Warehouse release v20260703 · Content Refresh lane
+    </p>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ABSTRACT -->
+  <section class="abstract">
+    <h2>Abstract</h2>
+
+    <p>
+      This paper asks whether a simple machine-learning model can prioritize
+      content observations for human review based on their measured risk of
+      future search-performance decline. Using the FlyRank internship warehouse
+      release v20260703, 96,268 eligible client-content observations were built
+      from March 2026 features and an April 2026 future-decline outcome.
+      Logistic Regression ranked observations by predicted probability and was
+      compared with a transparent Week-4 rule under an 80/20 client-grouped
+      holdout. On 22,411 held-out observations across 8 clients, the model
+      measured Precision@20 of 0.85 and Precision@50 of 0.82 versus 0.50 and
+      0.52 for the baseline, with a test positive rate of 0.6437. These results
+      provide directional decision support for human review, not a causal claim
+      that refreshing a page will improve performance.
+    </p>
+  </section>
+
+  <!-- INTRODUCTION -->
+  <section>
+    <h2>1. Introduction / Problem</h2>
+
+    <p>
+      Content teams often have more pages to review than they can inspect
+      immediately. The practical question in this project is therefore not
+      simply whether a page is performing well or poorly, but
+      <strong>which observations should be reviewed first</strong>.
+    </p>
+
+    <p>
+      This work frames that problem as ranking. A learned model produces a
+      probability score that can be used to order observations for human
+      review, while a transparent rule-based baseline provides a simple
+      comparison point.
+    </p>
+
+    <p>
+      The output is intended as decision support: a high-ranked observation is
+      a reason to inspect the page, not proof that a refresh is required.
+    </p>
+  </section>
+
+  <!-- DATA -->
+  <section>
+    <h2>2. Data</h2>
+
+    <p>
+      The study uses the FlyRank internship warehouse release
+      <strong>v20260703</strong>, hosted in the gated
+      <code>FlyRank/internship-warehouse</code> dataset.
+    </p>
+
+    <p>
+      The main table is
+      <code>fact_content_daily_performance</code>, whose daily grain is
+      report date × client × content. The release contains approximately
+      78.8 million daily-performance rows covering 2025-01-27 through
+      2026-06-30.
+    </p>
+
+    <h3>Analysis windows</h3>
+
+    <ul>
+      <li>March 2026 — feature / decision window.</li>
+      <li>April 2026 — future outcome window.</li>
+    </ul>
+
+    <h3>Model features</h3>
+
+    <ul>
+      <li><code>march_impressions</code></li>
+      <li><code>march_clicks</code></li>
+      <li><code>march_ctr</code></li>
+      <li><code>march_avg_position</code></li>
+      <li><code>march_days_observed</code></li>
+    </ul>
+
+    <h3>Eligibility and exclusions</h3>
+
+    <ul>
+      <li>At least 100 March GSC impressions.</li>
+      <li>At least 14 GSC-observed days in March.</li>
+      <li>At least 14 GSC-observed days in April.</li>
+      <li>Rows without available GSC data were excluded.</li>
+      <li><code>gsc_avg_position = 0</code> was treated as unavailable.</li>
+      <li>Future April outcome fields were not used as model features.</li>
+      <li>Client and content identifiers were used for grouping, not as predictive features.</li>
+    </ul>
+
+    <p class="note">
+      Client and content identifiers remain pseudonymized. No client names,
+      private URLs, or private search queries are included.
+    </p>
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section>
+    <h2>3. Methodology</h2>
+
+    <h3>Model</h3>
+
+    <p>
+      Logistic Regression was selected as the first learned model because the
+      task is ranking-oriented and the predicted probability provides a simple,
+      interpretable ranking score.
+    </p>
+
+    <h3>Future outcome definition</h3>
+
+    <p>
+      An eligible observation receives a positive future-decline label when
+      average daily GSC impressions in April are at least 20% lower than average
+      daily GSC impressions in March.
+    </p>
+
+    <p>
+      This is a declared experimental outcome definition, not a universal
+      definition of content decay.
+    </p>
+
+    <h3>Baseline</h3>
+
+    <p>
+      The Week-4 baseline prioritizes observations with at least 100 March
+      impressions and CTR below the average CTR measured for the March
+      average-position bucket. Its transparent reason code is
+      <code>HIGH_EXPOSURE_LOW_CTR</code>.
+    </p>
+
+    <h3>Validation</h3>
+
+    <p>
+      The main evaluation uses an 80/20 client-grouped holdout with random seed
+      42. Training contains 32 clients and 73,857 rows; testing contains
+      8 clients and 22,411 rows. Client overlap is zero.
+    </p>
+
+    <p>
+      Precision@20 and Precision@50 are used because the practical question is
+      which observations should be reviewed first.
+    </p>
+
+    <h3>Validation audit</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Validation design</th>
+          <th>Precision@20</th>
+          <th>Precision@50</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Random row split</td>
+          <td>0.90</td>
+          <td>0.84</td>
+        </tr>
+        <tr>
+          <td>Client-grouped split</td>
+          <td>0.85</td>
+          <td>0.82</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Leakage checks</h3>
+
+    <p>
+      The final feature set contains only March 2026 variables. No April outcome
+      fields or future-decline label fields are used as model features. The
+      feature-source audit confirmed that all five model inputs come from the
+      March decision window.
+    </p>
+  </section>
+
+  <!-- RESULTS -->
+  <section>
+    <h2>4. Results</h2>
+
+    <div class="metric-grid">
+      <div class="metric">
+        <span>Logistic Regression · Precision@20</span>
+        <strong>0.85</strong>
+      </div>
+
+      <div class="metric">
+        <span>Logistic Regression · Precision@50</span>
+        <strong>0.82</strong>
+      </div>
+
+      <div class="metric">
+        <span>Held-out test positive rate</span>
+        <strong>0.6437</strong>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Precision@20</th>
+          <th>Precision@50</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>Week-4 baseline</td>
+          <td>0.50</td>
+          <td>0.52</td>
+        </tr>
+
+        <tr>
+          <td>Logistic Regression</td>
+          <td>0.85</td>
+          <td>0.82</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <img
+      src="../work/figures/model_vs_baseline_precision.png"
+      alt="Bar chart comparing Week-4 baseline and Logistic Regression precision at 20 and 50"
+    >
+
+    <p class="caption">
+      Model vs Week-4 baseline on the client-grouped held-out test split.
+    </p>
+
+    <p>
+      On this held-out-client split, Logistic Regression measured higher
+      precision than the Week-4 baseline at both evaluation cutoffs. The result
+      is specific to this dataset, feature window, future-decline definition,
+      and client-grouped test split.
+    </p>
+  </section>
+
+  <!-- LIMITATIONS -->
+  <section>
+    <h2>5. Limitations & Honest Framing</h2>
+
+    <ul>
+      <li>
+        Results come from one March 2026 feature window and one April 2026
+        outcome definition.
+      </li>
+
+      <li>
+        The future-decline label is an experimental definition and should not be
+        treated as a universal definition of content decay.
+      </li>
+
+      <li>
+        The main test contains eight held-out clients. The grouped split tests
+        those held-out clients rather than every possible future client.
+      </li>
+
+      <li>
+        Training and test positive-label rates differ: 0.4664 versus 0.6437.
+        This indicates a noticeable difference in outcome prevalence between
+        the two groups.
+      </li>
+
+      <li>
+        The model uses only five search-performance features and does not capture
+        every factor affecting content performance, including search intent,
+        SERP conditions, editorial context, and business context.
+      </li>
+
+      <li>
+        The analysis does not establish that refreshing a page causes better
+        search performance.
+      </li>
+
+      <li>
+        Recommendations are decision-support suggestions for human review, not
+        automatic content actions.
+      </li>
+    </ul>
+  </section>
+
+  <!-- RECOMMENDATIONS -->
+  <section>
+    <h2>6. Ranked Recommendations</h2>
+
+    <h3>1. Review high-risk observations with meaningful exposure</h3>
+
+    <p>
+      Start with observations that have a higher predicted probability of the
+      future-decline outcome and meaningful March search exposure. These combine
+      a measured model signal with observed search activity that can make human
+      review useful.
+    </p>
+
+    <h3>2. Inspect high-risk observations with weak CTR context</h3>
+
+    <p>
+      Where a high-risk observation also has weak CTR relative to its observed
+      position, review the title, snippet, search intent, and page/result
+      alignment.
+    </p>
+
+    <h3>3. Treat low-evidence high-risk observations cautiously</h3>
+
+    <p>
+      Observations with limited current evidence should be reviewed more
+      cautiously because sparse or changing data can make the ranking less
+      stable.
+    </p>
+
+    <h3>Human review is required</h3>
+
+    <p>
+      Reviewers should check current search context, search intent, recent page
+      changes, business and editorial context, and whether the suggested action
+      makes sense before making a change.
+    </p>
+
+    <h3>What should not be automated</h3>
+
+    <ul>
+      <li>Automatic content publishing or rewriting.</li>
+      <li>Automatic title or metadata changes.</li>
+      <li>Automatic deletion, redirects, or de-indexing.</li>
+      <li>Automatic legal, brand, or sensitive editorial decisions.</li>
+      <li>Treating a high model score as proof that a page needs a particular edit.</li>
+    </ul>
+  </section>
+
+  <!-- REPRODUCIBILITY -->
+  <section>
+    <h2>7. Reproducibility</h2>
+
+    <p>
+      The analysis is organized as a sequence of notebooks in the public
+      repository. The main modeling workflow uses fixed random seed 42,
+      March 2026 features, an April 2026 future outcome window, and an 80/20
+      client-grouped validation split.
+    </p>
+
+    <h3>Key notebooks</h3>
+
+    <ul>
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w03_data_contract.ipynb">
+          ML-04 — Data Contract
+        </a>
+      </li>
+
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w04_baseline_score.ipynb">
+          ML-07 — Baseline Action Score
+        </a>
+      </li>
+
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w05_model.ipynb">
+          ML-08 — Capstone Model
+        </a>
+      </li>
+
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w06_validation_audit.ipynb">
+          ML-09 — Validation Audit
+        </a>
+      </li>
+
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w07_action_playbook.ipynb">
+          ML-10 — Action Playbook
+        </a>
+      </li>
+
+      <li>
+        <a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/capstone.ipynb">
+          ML-11 — Capstone Notebook
+        </a>
+      </li>
+    </ul>
+
+    <p>
+      <a href="https://github.com/GODRATAN/FlyRank_ML-Intern">
+        View the full GitHub repository
+      </a>
+    </p>
+  </section>
+
+  <!-- CREDIT -->
+  <section>
+    <h2>8. Acknowledgments & Data Credit</h2>
+
+    <p>
+      Built on the
+      <a href="https://flyrank.ai" target="_blank" rel="noopener">
+        FlyRank ML Internship dataset
+      </a>.
+    </p>
+
+    <p>
+      This project was completed as part of the FlyRank ML Internship track.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      Public research artifact · Content Refresh Prioritization · FlyRank ML Internship
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
