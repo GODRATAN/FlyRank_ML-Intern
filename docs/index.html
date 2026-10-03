@@ -1,4 +1,6 @@
-<!doctype html>
+from pathlib import Path
+
+html = r'''<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -27,6 +29,7 @@
 
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
+
     body{
       margin:0;
       background:var(--bg);
@@ -140,7 +143,6 @@
     }
 
     p{margin:12px 0}
-
     .small{font-size:.93rem;color:var(--muted)}
 
     .grid{
@@ -280,14 +282,6 @@
       color:var(--text);
     }
 
-    .toc-list{
-      display:grid;
-      grid-template-columns:repeat(2,1fr);
-      gap:9px 22px;
-      margin:0;
-      padding-left:20px;
-    }
-
     .note{
       color:var(--muted);
       border-left:4px solid #94a3b8;
@@ -315,7 +309,7 @@
     @media (max-width:650px){
       section{padding:23px}
       header{padding:50px 0 34px}
-      .grid-2,.grid-4,.flow,.toc-list{grid-template-columns:1fr}
+      .grid-2,.grid-4,.flow{grid-template-columns:1fr}
       nav a{font-size:.82rem}
       th,td{padding:10px 8px}
     }
@@ -340,7 +334,7 @@
 
 <nav>
   <div class="wrap nav-inner">
-    <a href="#at-a-glance">At a glance</a>
+    <a href="#at-a-glance">Abstract</a>
     <a href="#problem">Problem</a>
     <a href="#data">Data</a>
     <a href="#method">Method</a>
@@ -356,19 +350,37 @@
 
   <section class="hero-card" id="at-a-glance">
     <h2>Abstract</h2>
+
     <p>
-      This study asks whether a simple machine-learning model can rank content
-      observations for human review using signals available before a future
-      search-performance outcome. It uses the FlyRank internship warehouse
-      release v20260703, with March 2026 search-performance features and an
-      April 2026 outcome defined as a drop of at least 20% in average daily GSC
-      impressions. Logistic Regression turns five March-only features into a
-      ranking score and is compared with a transparent Week-4 baseline using
-      an 80/20 client-grouped holdout. On 22,411 held-out observations across
-      eight clients, the model measured Precision@20 of 0.85 and Precision@50
-      of 0.82, compared with 0.50 and 0.52 for the baseline. The result is
-      evidence for prioritization and human review in this experiment, not
-      evidence that refreshing a page causes better search performance.
+      Content teams may have many pages to review but limited time to inspect
+      them individually. This study asks whether a simple machine-learning
+      model can help decide which content observations should be reviewed first
+      when there is a concern about future search-performance decline.
+    </p>
+
+    <p>
+      The experiment uses the FlyRank internship warehouse release v20260703.
+      March 2026 search-performance signals are used as the model inputs, while
+      April 2026 is kept separate and used only to define the future outcome.
+      An observation is labelled positive when its average daily GSC impressions
+      in April are at least 20% lower than in March. Logistic Regression uses
+      five March-only features to produce a ranking score, which is compared
+      with the transparent Week-4 baseline.
+    </p>
+
+    <p>
+      On the client-grouped held-out test split, the model measured
+      Precision@20 of <strong>0.85</strong> and Precision@50 of
+      <strong>0.82</strong>, compared with <strong>0.50</strong> and
+      <strong>0.52</strong> for the baseline. These results show that the
+      model concentrated more observations with the defined future outcome
+      near the top of the review queue in this experiment.
+    </p>
+
+    <p>
+      The result should be read as evidence about <strong>prioritization</strong>,
+      not as proof that a page will decline or that refreshing a page will
+      improve search performance.
     </p>
 
     <div class="grid grid-4">
@@ -377,16 +389,19 @@
         <strong>96,268</strong>
         <span>40 clients</span>
       </div>
+
       <div class="card metric">
         <span>Held-out test set</span>
         <strong>22,411</strong>
         <span>8 clients · 0 client overlap</span>
       </div>
+
       <div class="card metric">
         <span>Model Precision@20</span>
         <strong>0.85</strong>
         <span>17 of top 20 met the defined outcome</span>
       </div>
+
       <div class="card metric">
         <span>Model Precision@50</span>
         <strong>0.82</strong>
@@ -395,51 +410,81 @@
     </div>
 
     <div class="callout">
-      <span class="kicker">How to read this paper:</span>
-      The model does not prescribe editorial changes. Instead, it produces an ordered review queue that helps editors prioritize pages for further investigation. 
-      Final decisions remain human-led and should consider page context, search intent, and the underlying business situation.
+      <span class="kicker">What this study actually does:</span>
+      the model does not decide what an editor should change. It produces an
+      ordered review queue. A human still checks the page, search context,
+      intent and business situation before deciding whether any action makes sense.
     </div>
   </section>
+
 
   <section id="problem">
     <h2>1. Introduction / Problem</h2>
 
     <p>
-      Imagine an editor has thousands of pages and only enough time to inspect
-      a small number today. The useful question is not simply
-      <em>“Which pages are bad?”</em> but
+      The practical problem is straightforward: a content team can have
+      thousands of pages and only a limited amount of time for detailed review.
+      Looking at every page with equal attention is therefore unrealistic.
+    </p>
+
+    <p>
+      That changes the question we need to answer. Instead of asking
+      <em>“Which pages are bad?”</em>, this study asks:
       <strong>“Which observations should be reviewed first?”</strong>
     </p>
 
     <p>
-      This project treats that as a ranking problem. A transparent rule gives
-      us a human-readable baseline; a learned model gives us another way to
-      order the same kind of observations.
+      This is treated as a ranking problem. The system is not intended to
+      replace an editor. It is intended to make the first pass more focused by
+      placing observations that look more relevant near the top of a review
+      queue.
+    </p>
+
+    <h3>Research question</h3>
+
+    <p>
+      Can a simple machine-learning model help rank content observations for
+      human review when the goal is to identify observations with a higher
+      measured risk of the future-decline outcome defined for this experiment?
+    </p>
+
+    <h3>Decision supported</h3>
+
+    <p>
+      The decision is <strong>where to spend review time first</strong>.
+      A higher model score means that an observation is ranked more highly for
+      inspection. It does not mean that the page definitely needs an edit,
+      that the page will definitely decline, or that an edit will improve its
+      future performance.
     </p>
 
     <div class="flow">
       <div class="step">
         <span class="step-num">1</span>
         <strong>Observe March</strong>
-        Search-performance signals available at the decision moment.
+        Use search-performance information available at the decision point.
       </div>
+
       <div class="step">
         <span class="step-num">2</span>
         <strong>Define April outcome</strong>
-        Mark observations whose average daily impressions fell by at least 20%.
+        Identify observations whose average daily impressions fell by at least 20%.
       </div>
+
       <div class="step">
         <span class="step-num">3</span>
-        <strong>Rank</strong>
-        Logistic Regression assigns a score used only to order the review queue.
+        <strong>Rank observations</strong>
+        Logistic Regression produces a score used to order the review queue.
       </div>
+
       <div class="step">
         <span class="step-num">4</span>
-        <strong>Review</strong>
-        A human checks context before deciding whether any action is appropriate.
+        <strong>Human review</strong>
+        An editor checks the actual page, search intent and surrounding context.
       </div>
     </div>
   </section>
+
 
   <section id="data">
     <h2>2. Data</h2>
@@ -447,42 +492,59 @@
     <p>
       The study uses the FlyRank internship warehouse release
       <strong>v20260703</strong>, hosted in the gated
-      <code>FlyRank/internship-warehouse</code> dataset. The main table is
-      <code>fact_content_daily_performance</code>, with grain
-      <strong>report date × client × content</strong>. The release contains
-      approximately 78.8 million daily-performance rows spanning
-      2025-01-27 through 2026-06-30.
+      <code>FlyRank/internship-warehouse</code> dataset.
+      The main table is <code>fact_content_daily_performance</code>, where each
+      observation is at the <strong>report date × client × content</strong>
+      grain. The release contains approximately 78.8 million daily-performance
+      rows covering 2025-01-27 through 2026-06-30.
     </p>
+
+    <h3>Two separate time windows</h3>
 
     <div class="grid grid-2">
       <div class="card">
-        <h3>Feature window · March 2026</h3>
+        <h3>March 2026 · What the model is allowed to see</h3>
         <p class="small">
-          Only information available in March is used as a predictive input.
+          March is the decision/feature window. Only information available in
+          this period is used as a model input.
         </p>
+
         <ul>
           <li><code>march_impressions</code> — search exposure</li>
           <li><code>march_clicks</code> — observed clicks</li>
-          <li><code>march_ctr</code> — click rate</li>
-          <li><code>march_avg_position</code> — search position context</li>
-          <li><code>march_days_observed</code> — depth of available evidence</li>
+          <li><code>march_ctr</code> — click-through rate</li>
+          <li><code>march_avg_position</code> — average search position</li>
+          <li><code>march_days_observed</code> — amount of observed evidence</li>
         </ul>
       </div>
 
       <div class="card">
-        <h3>Outcome window · April 2026</h3>
+        <h3>April 2026 · What happens later</h3>
         <p class="small">
-          April is used to define the outcome only. It is not allowed into the
-          March feature set.
+          April is used only to construct the future outcome. It is not supplied
+          to the model as a feature.
         </p>
+
         <p>
-          Label = 1 when average daily GSC impressions in April are at least
-          20% lower than average daily GSC impressions in March.
+          An observation receives label <strong>1</strong> when its average
+          daily GSC impressions in April are at least <strong>20% lower</strong>
+          than its average daily GSC impressions in March.
         </p>
       </div>
     </div>
 
+    <h3>Why the separation matters</h3>
+
+    <p>
+      The model is supposed to make its ranking using information that would
+      actually have been available at the decision point. If April information
+      were allowed into the March feature set, the model could indirectly see
+      the future it is supposed to predict. Keeping the windows separate is
+      therefore part of the experiment design, not just a data-cleaning detail.
+    </p>
+
     <h3>Eligibility and exclusions</h3>
+
     <ul>
       <li>At least 100 March GSC impressions.</li>
       <li>At least 14 GSC-observed days in March.</li>
@@ -490,62 +552,99 @@
       <li>Rows without available GSC data were excluded.</li>
       <li><code>gsc_avg_position = 0</code> was treated as unavailable.</li>
       <li>Future April outcome fields were excluded from model features.</li>
-      <li>Client and content identifiers were used for grouping, never as predictive features.</li>
+      <li>Client and content identifiers were used for grouping, not as predictive features.</li>
     </ul>
 
     <p class="note">
       The final modeling dataset contains 96,268 eligible client-content
-      observations across 40 clients. The client/content identifiers remain
+      observations across 40 clients. Client and content identifiers remain
       pseudonymized; no client names, private URLs or private search queries
-      appear in the paper.
+      are included in the paper.
     </p>
   </section>
+
 
   <section id="method">
     <h2>3. Methodology</h2>
 
     <h3>Model choice</h3>
+
     <p>
-      Logistic Regression was chosen as the first learned model because the
-      question is ranking-oriented and the model produces a probability-like
-      score that is easy to inspect and use for ranking. No claim is made that
-      a more complex model could not behave differently.
+      Logistic Regression was used as the learned model because the first
+      question is not whether a highly complex model can be built. The first
+      question is whether a small set of understandable search-performance
+      signals can produce a useful ranking.
+    </p>
+
+    <p>
+      Logistic Regression is a reasonable first model for that purpose because
+      its output can be used as a probability-like score and inspected without
+      requiring a complex model architecture.
     </p>
 
     <h3>What the model sees</h3>
+
     <p>
-      All five model inputs come from March 2026. April fields exist only on
-      the outcome side. This separation is the core protection against using
-      future information as a feature.
+      The model uses five features calculated from the March 2026 decision
+      window:
+    </p>
+
+    <ul>
+      <li><code>march_impressions</code></li>
+      <li><code>march_clicks</code></li>
+      <li><code>march_ctr</code></li>
+      <li><code>march_avg_position</code></li>
+      <li><code>march_days_observed</code></li>
+    </ul>
+
+    <p>
+      April information is kept on the outcome side only. This means the model
+      makes its ranking from March information and is evaluated later against
+      what actually happened in April.
     </p>
 
     <h3>Baseline</h3>
+
     <p>
-      The Week-4 baseline prioritizes observations with at least 100 March
-      impressions and CTR below the average CTR for their March average-position
-      bucket. In the held-out evaluation, that position-specific reference was
-      calculated from training rows only.
+      The Week-4 baseline is deliberately simple. It prioritizes observations
+      with at least 100 March impressions and CTR below the average CTR for
+      their March average-position bucket. Its purpose is to provide a
+      transparent reference point: if a learned model cannot improve on a
+      readable rule, the extra complexity is difficult to justify.
     </p>
 
     <h3>Validation design</h3>
+
     <p>
-      The main evaluation uses an 80/20 client-grouped holdout with random seed
-      42. Training contains 32 clients and 73,857 rows; testing contains 8
-      clients and 22,411 rows. There is <strong>zero client overlap</strong>.
+      The main evaluation uses an <strong>80/20 client-grouped holdout</strong>
+      with random seed 42. Training contains 32 clients and 73,857 rows.
+      Testing contains 8 clients and 22,411 rows. There is
+      <strong>zero client overlap</strong>.
     </p>
 
-    <h3>Why Precision@20 and @50?</h3>
     <p>
-      If the real workflow is “review the first few recommendations,” overall
-      accuracy is less informative than asking how many of the top-ranked
-      observations actually meet the chosen outcome definition.
+      Holding out whole clients is important because observations from the same
+      client can be related to one another. A random row split could place
+      observations from the same client on both sides of the evaluation and
+      make the task look easier than it is.
+    </p>
+
+    <h3>Why Precision@20 and Precision@50?</h3>
+
+    <p>
+      The intended workflow is a ranked review queue. An editor may only have
+      time to inspect the first 20 or 50 recommendations, so the useful
+      question is not simply whether every observation was classified
+      correctly. The useful question is whether the top of the queue contains
+      a high concentration of observations that meet the chosen outcome
+      definition.
     </p>
 
     <div class="callout good">
       <strong>Plain-English metric:</strong>
-      Precision@20 = the share of the first 20 ranked observations that meet
-      the defined future-decline label. Precision@50 is the same idea for the
-      first 50.
+      Precision@20 is the share of the first 20 ranked observations that meet
+      the defined future-decline label. Precision@50 asks the same question for
+      the first 50 observations.
     </div>
 
     <h3>Validation audit</h3>
@@ -556,9 +655,10 @@
           <th>Validation design</th>
           <th>Precision@20</th>
           <th>Precision@50</th>
-          <th>Why it matters</th>
+          <th>How to interpret it</th>
         </tr>
       </thead>
+
       <tbody>
         <tr>
           <td>Random row split</td>
@@ -566,30 +666,43 @@
           <td class="number">0.84</td>
           <td>Rows from the same client can appear in both train and test.</td>
         </tr>
+
         <tr>
           <td>Client-grouped split</td>
           <td class="number">0.85</td>
           <td class="number">0.82</td>
-          <td>Whole clients are held out; this is the main estimate used here.</td>
+          <td>Whole clients are held out; this is the stricter main estimate.</td>
         </tr>
       </tbody>
     </table>
 
+    <p>
+      The random split gives slightly higher numbers, but the client-grouped
+      result is used as the main estimate because it better matches the
+      question of ranking observations for clients not represented in
+      training.
+    </p>
+
     <h3>Leakage audit</h3>
+
     <p>
       The final feature set contains only March variables. The audit found no
-      future- or label-derived feature names, and no April outcome fields were
-      used as model inputs. The feature-source audit confirmed March 2026 as the
-      source window for all five inputs.
+      suspicious future- or label-derived feature names, and no April outcome
+      fields were used as model inputs. The feature-source audit confirmed that
+      all five model features come from the March 2026 decision window.
     </p>
   </section>
+
 
   <section id="results">
     <h2>4. Results</h2>
 
     <p>
-      The main comparison is on the same held-out-client test set, using the
-      same ranking metrics.
+      The main comparison is made on the same client-grouped held-out test set.
+      Both methods are evaluated using the same ranking metrics, so the
+      comparison asks a simple question:
+      <strong>which approach puts more positive observations near the top of
+      the review queue?</strong>
     </p>
 
     <div class="grid grid-3">
@@ -600,13 +713,13 @@
       </div>
 
       <div class="card metric">
-        <span>Model · Precision@20</span>
+        <span>Logistic Regression · Precision@20</span>
         <strong>0.85</strong>
         <span>17 of the top 20 met the label</span>
       </div>
 
       <div class="card metric">
-        <span>Model · Precision@50</span>
+        <span>Logistic Regression · Precision@50</span>
         <strong>0.82</strong>
         <span>41 of the top 50 met the label</span>
       </div>
@@ -620,12 +733,14 @@
           <th>Precision@50</th>
         </tr>
       </thead>
+
       <tbody>
         <tr>
           <td>Week-4 baseline</td>
           <td class="number">0.50</td>
           <td class="number">0.52</td>
         </tr>
+
         <tr>
           <td>Logistic Regression</td>
           <td class="number">0.85</td>
@@ -637,10 +752,9 @@
     <div class="callout">
       <strong>Read the result against the base rate:</strong>
       the held-out test positive-label rate was <strong>0.6437</strong>.
-      This matters because precision numbers are easier to interpret when the
-      underlying prevalence is visible. In this experiment, the model's
-      top-ranked precision was above that prevalence; the baseline's reported
-      Precision@20 and @50 were below it.
+      This gives context for the precision values. In this experiment, the
+      model's top-ranked precision was above the test-set prevalence, while the
+      baseline's Precision@20 and Precision@50 were below it.
     </div>
 
     <div class="chart">
@@ -653,87 +767,150 @@
       </p>
     </div>
 
+    <h3>What the numbers mean</h3>
+
     <p>
-      On this held-out-client split, Logistic Regression measured higher
-      precision than the Week-4 baseline at both cutoffs. The random row split
-      produced 0.90 and 0.84, while the stricter client-grouped split produced
-      0.85 and 0.82, which is why the grouped result is the main estimate.
+      At the top 20 positions, the Logistic Regression ranking found 17
+      observations that met the defined future-decline outcome, compared with
+      10 for the Week-4 baseline. At the top 50, the model found 41 such
+      observations, compared with 26 for the baseline.
     </p>
+
+    <p>
+      The important point is not that the model “predicts the future” with
+      certainty. The result says that, under this dataset, feature window,
+      outcome definition and client-grouped test split, the model was better at
+      concentrating positive examples near the top of the queue.
+    </p>
+
+    <p>
+      The random row split produced Precision@20 of 0.90 and Precision@50 of
+      0.84. The client-grouped split produced 0.85 and 0.82. The grouped result
+      is therefore kept as the main estimate rather than presenting the more
+      optimistic random-split numbers as the headline result.
+    </p>
+
+    <div class="callout warn">
+      <strong>What this result does not show:</strong>
+      it does not show that 85% of all pages will decline, and it does not show
+      that refreshing those pages will improve search performance. It only
+      measures how effectively the ranking concentrated observations matching
+      the experiment's defined outcome near the top of the queue.
+    </div>
   </section>
+
 
   <section id="limits">
     <h2>5. Limitations & Honest Framing</h2>
+
+    <p>
+      The results are useful only when their boundaries are clear. Several
+      limitations affect how the numbers should be interpreted.
+    </p>
 
     <ul>
       <li>
         The study uses one March feature window and one April outcome window.
         Results may differ under other time periods.
       </li>
+
       <li>
-        The 20% impression-drop label is an experimental definition, not a
-        universal definition of “content decay.”
+        The 20% impression-drop label is an experimental definition. It is not
+        a universal definition of “content decay.”
       </li>
+
       <li>
-        The main test contains eight held-out clients. That is stronger than a
-        row-random split for this question, but it is still a small held-out
-        client sample.
+        The main test contains eight held-out clients. The grouped split is
+        stronger for this question than a random row split, but the number of
+        held-out clients is still limited.
       </li>
+
       <li>
-        The training and test positive-label rates differ: 0.4664 versus 0.6437.
-        This indicates a noticeable difference in outcome prevalence between
-        these groups.
+        The positive-label rates differ between training and test:
+        0.4664 versus 0.6437. This indicates a noticeable difference in outcome
+        prevalence between the two groups.
       </li>
+
       <li>
-        The five features do not capture every relevant factor, including
-        search intent, SERP features, editorial context, business priorities
-        and recent changes outside the warehouse snapshot.
+        The five features do not capture every factor that may matter,
+        including search intent, SERP features, editorial context, business
+        priorities and changes outside the warehouse snapshot.
       </li>
+
+      <li>
+        Search and Analytics data availability varies across clients and dates.
+        Missing or unavailable data can affect which observations enter the
+        model.
+      </li>
+
       <li>
         The analysis measures ranking performance. It does not establish that
         refreshing a page causes better search performance.
       </li>
+
       <li>
-        A high model score is a reason to review, not proof that a particular
-        edit is needed.
+        A high model score is a reason to review an observation, not proof that
+        a particular edit is required.
       </li>
     </ul>
+
+    <div class="callout good">
+      <strong>Bottom line:</strong>
+      the strongest claim supported by this experiment is that the learned
+      ranking performed better than the Week-4 baseline on the chosen
+      client-grouped test split. Broader claims about causality, future
+      performance or guaranteed SEO improvement are outside the evidence.
+    </div>
   </section>
+
 
   <section id="recommendations">
     <h2>6. Ranked Recommendations</h2>
 
-    <h3>1. Review high-risk observations with meaningful exposure</h3>
     <p>
-      Start with observations that have a higher model score and meaningful
-      March search exposure. The purpose is to use limited reviewer time on
-      observations that the model ranks more highly and that have enough current
-      search activity to make inspection potentially useful.
+      The model is most useful when its output is treated as a queue for human
+      investigation rather than an automatic editing system.
+    </p>
+
+    <h3>1. Review high-risk observations with meaningful exposure</h3>
+
+    <p>
+      Start with observations that receive a higher model score and have
+      meaningful March search exposure. This uses limited reviewer time on
+      observations that the model ranks highly and that have enough current
+      search activity to make inspection useful.
     </p>
 
     <h3>2. If CTR is weak, inspect the search context before editing</h3>
+
     <p>
-      Review the title, snippet, query intent, page/result alignment and SERP
-      context. The model does not tell the reviewer which one of these is the
-      problem.
+      A low CTR can have several explanations. Review the title, snippet, query
+      intent, page/result alignment and SERP context before deciding what, if
+      anything, should change. The model does not identify which of these is
+      the problem.
     </p>
 
     <h3>3. Treat low-evidence high-risk observations cautiously</h3>
+
     <p>
-      Sparse or changing data can make a score less stable. These observations
-      are candidates for additional evidence or monitoring rather than automatic
-      changes.
+      A high score is not equally informative for every observation. Sparse or
+      changing data can make a recommendation less stable. These cases are
+      better treated as candidates for additional evidence or monitoring rather
+      than automatic changes.
     </p>
 
     <h3>Human-review checklist</h3>
+
     <ol>
-      <li>Check current page and search context.</li>
+      <li>Check the current page and search context.</li>
       <li>Check search intent and CTR context.</li>
       <li>Check whether a recent content or site change explains the signal.</li>
       <li>Check business, brand, legal and editorial context.</li>
-      <li>Confirm that the suggested action makes sense before changing anything.</li>
+      <li>Confirm that the proposed action makes sense before changing anything.</li>
     </ol>
 
     <h3>What should never be automated here</h3>
+
     <ul>
       <li>Automatic publishing or rewriting of page content.</li>
       <li>Automatic title or metadata changes.</li>
@@ -743,22 +920,24 @@
     </ul>
 
     <h3>Cost / value thinking</h3>
+
     <p>
       The practical constraint is reviewer time, not a claimed monetary ROI.
       Higher-risk, higher-exposure observations can be inspected earlier, but
-      the actual value of a change depends on the page, business context and
-      the result of human review.
+      the value of any eventual change depends on the page, the business
+      context and what the human review discovers.
     </p>
 
     <h3>Monitoring and retraining</h3>
+
     <p>
       Track Precision@20 and Precision@50 on a recent reviewed sample, data
       availability, feature distributions and the rate at which reviewers
-      reject high-priority recommendations. Consider a fresh model audit when
-      recent precision falls materially, feature distributions shift, data
-      coverage changes enough to alter the queue, reviewers repeatedly reject
-      high-priority items for the same reason, or the underlying decision/outcome
-      definition changes.
+      reject high-priority recommendations. A fresh model audit is appropriate
+      when recent precision falls materially, feature distributions shift,
+      data coverage changes enough to alter the queue, reviewers repeatedly
+      reject high-priority items for the same reason, or the underlying
+      decision/outcome definition changes.
     </p>
 
     <div class="callout warn">
@@ -767,6 +946,7 @@
       split and a new comparison with the frozen baseline.
     </div>
   </section>
+
 
   <section id="repro">
     <h2>7. Reproducibility</h2>
@@ -780,6 +960,7 @@
     <div class="grid grid-2">
       <div class="card">
         <h3>Core notebooks</h3>
+
         <ul>
           <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w03_data_contract.ipynb">ML-04 · Data Contract</a></li>
           <li><a href="https://github.com/GODRATAN/FlyRank_ML-Intern/blob/main/work/notebooks/w04_baseline_score.ipynb">ML-07 · Baseline Action Score</a></li>
@@ -792,11 +973,13 @@
 
       <div class="card">
         <h3>Useful artifacts</h3>
+
         <p>
           The repository also contains the reusable model-vs-baseline figure
           used on this page. Generated queue data remains a working artifact
           and is reproduced by the notebook workflow.
         </p>
+
         <p>
           <a href="https://github.com/GODRATAN/FlyRank_ML-Intern">
             View the full GitHub repository →
@@ -811,6 +994,7 @@
       private client information.
     </p>
   </section>
+
 
   <section id="credit">
     <h2>8. Acknowledgments & Data Credit</h2>
@@ -830,7 +1014,9 @@
       The data and analysis are presented here in pseudonymized, public-safe form.
     </p>
 
-    <div class="top"><a href="#top">Back to top ↑</a></div>
+    <div class="top">
+      <a href="#top">Back to top ↑</a>
+    </div>
   </section>
 
 </main>
@@ -841,3 +1027,11 @@
 
 </body>
 </html>
+'''
+
+path = Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+
+print(f"Created: {path}")
+print(f"Lines: {len(html.splitlines())}")
+print("This version keeps Sections 7 and 8, preserves the Results section structure, and rewrites Sections 1–6 for clearer human-readable research flow.")
